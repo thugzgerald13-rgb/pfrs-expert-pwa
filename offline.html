@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline - PFRS Expert System</title>
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #1a4d8c 0%, #0e3a6b 100%);
+            color: white;
+        }
+        .offline-container {
+            text-align: center;
+            padding: 2rem;
+            max-width: 400px;
+        }
+        .offline-icon {
+            font-size: 5rem;
+            margin-bottom: 1rem;
+        }
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        p {
+            opacity: 0.9;
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: white;
+            color: #1a4d8c;
+            text-decoration: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+        }
+        .retry-btn {
+            margin-top: 1rem;
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="offline-container">
+        <div class="offline-icon">📡</div>
+        <h1>You're Offline</h1>
+        <p>The PFRS Expert System requires an internet connection to access the latest SEC regulations and generate disclosures. Please check your connection and try again.</p>
+        <button class="btn" onclick="location.reload()">Try Again</button>
+        <br>
+        <button class="btn retry-btn" onclick="location.href='/'">Go to Homepage</button>
+    </div>
+</body>
+</html>
