@@ -6,6 +6,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     aiContext: {}
   };
 
+  function detectMissingDisclosureAreas(balances = {}) {
+    const missing = [];
+    if (!balances.revenue) missing.push('revenue recognition');
+    if (!balances.incomeTaxExpense && !balances.deferredTax) missing.push('income tax');
+    if (!balances.relatedPartyBalances) missing.push('related party disclosures');
+    if (!balances.ppe && !balances.accumulatedDepreciation) missing.push('property and equipment');
+    if (!balances.leaseLiabilities && !balances.rightOfUseAssets) missing.push('leases (if applicable)');
+    return missing;
+  }
+
+  function refreshAIContext() {
+    state.entity = JSON.parse(localStorage.getItem('pfrsExpertState') || '{}');
+    const balances = state.financialData?.balances || {};
+    const missing = detectMissingDisclosureAreas(balances);
+    state.aiContext = {
+      entityName: state.entity.entityName,
+      balances,
+      missing,
+      framework: 'PFRS',
+      findings: missing.length ? [`Detected ${missing.length} possible note gaps from uploaded balances.`] : []
+    };
+  }
+
   // LOAD XLSX
   await loadScript('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js', 'XLSX');
 
@@ -27,11 +50,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       );
 
       document.getElementById('reviewResults').textContent = fs;
-
-      state.aiContext = {
-        entityName: state.entity.entityName,
-        balances: parsed.balances
-      };
+      refreshAIContext();
     }
   });
 
@@ -76,6 +95,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     const reply = CAPO_AI_LAYER.chatReply(input, state.aiContext);
 
     document.getElementById('aiOutput').textContent = reply;
+  });
+
+  // AI SUGGESTED PROMPTS
+  document.getElementById('aiSuggestBtn')?.addEventListener('click', () => {
+    refreshAIContext();
+    const prompts = CAPO_AI_LAYER.suggestPrompts(
+      state.aiContext.missing || [],
+      state.aiContext.balances || {}
+    );
+
+    document.getElementById('aiSuggestions').textContent = prompts.length
+      ? prompts.map((prompt, i) => `${i + 1}. ${prompt}`).join('\n')
+      : 'No prompt suggestions yet. Upload an XLSX trial balance first.';
   });
 
   function loadScript(src, global) {
