@@ -16,6 +16,12 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+    <!-- INSTALL BANNER -->
+<div id="installBanner" style="display: none; background: #1a73e8; color: white; padding: 15px; text-align: center; position: fixed; bottom: 0; left: 0; right: 0; z-index: 9999; box-shadow: 0 -2px 10px rgba(0,0,0,0.2);">
+  <span style="margin-right: 15px;">📲 Install this app for quick access</span>
+  <button id="installBtn" style="background: white; color: #1a73e8; border: none; padding: 10px 20px; border-radius: 5px; font-weight: bold; cursor: pointer;">Install</button>
+  <button id="dismissBtn" style="background: transparent; color: white; border: 1px solid white; padding: 10px 20px; border-radius: 5px; margin-left: 10px; cursor: pointer;">Not Now</button>
+</div>
     <!-- Offline Indicator -->
     <div id="offline-indicator" class="offline-indicator hidden">
         <i class="fas fa-wifi"></i> You are offline. Some features may be limited.
@@ -493,5 +499,34 @@
     <script src="js/sec-compliance.js"></script>
     <script src="js/disclosure-generator.js"></script>
     <script src="js/app.js"></script>
+<script>
+  let deferredPrompt;
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    document.getElementById('installBanner').style.display = 'block';
+  });
+
+  document.getElementById('installBtn').addEventListener('click', async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log(`User response: ${outcome}`);
+      deferredPrompt = null;
+    }
+    document.getElementById('installBanner').style.display = 'none';
+  });
+
+  document.getElementById('dismissBtn').addEventListener('click', () => {
+    document.getElementById('installBanner').style.display = 'none';
+  });
+
+  window.addEventListener('appinstalled', () => {
+    console.log('PWA was installed');
+    deferredPrompt = null;
+    document.getElementById('installBanner').style.display = 'none';
+  });
+</script>
 </body>
 </html>
