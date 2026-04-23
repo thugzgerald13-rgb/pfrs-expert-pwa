@@ -73,3 +73,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
   renderQuestion(pfrfsRules[0]);
 });
+// GLOSSARY SEARCH FUNCTIONALITY
+const searchInput = document.getElementById('glossarySearch');
+const resultsContainer = document.getElementById('glossaryResults');
+
+if (searchInput && resultsContainer) {
+  searchInput.addEventListener('input', (e) => {
+    const query = e.target.value.toLowerCase().trim();
+    
+    if (query.length === 0) {
+      resultsContainer.innerHTML = '';
+      return;
+    }
+
+    const matches = pfrsGlossary.filter(item => 
+      item.term.toLowerCase().includes(query) || 
+      item.definition.toLowerCase().includes(query) ||
+      item.standard.toLowerCase().includes(query)
+    );
+
+    if (matches.length === 0) {
+      resultsContainer.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">No matching terms found. Try a different keyword.</p>';
+    } else {
+      resultsContainer.innerHTML = matches.map(item => `
+        <div style="background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid #1a73e8;">
+          <h3 style="margin: 0 0 5px 0; color: #1a73e8;">${highlightMatch(item.term, query)}</h3>
+          <p style="margin: 0 0 8px 0; color: #444; line-height: 1.5;">${highlightMatch(item.definition, query)}</p>
+          <span style="display: inline-block; background: #e8f0fe; color: #1a73e8; padding: 3px 10px; border-radius: 12px; font-size: 0.8em; font-weight: bold;">${highlightMatch(item.standard, query)}</span>
+        </div>
+      `).join('');
+    }
+  });
+}
+
+function highlightMatch(text, query) {
+  if (!query) return text;
+  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  return text.replace(regex, '<mark style="background: #fff3cd; padding: 1px 3px; border-radius: 2px;">$1</mark>');
+}
