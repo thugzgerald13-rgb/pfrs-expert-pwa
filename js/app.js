@@ -111,3 +111,15 @@ function highlightMatch(text, query) {
   const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
   return text.replace(regex, '<mark style="background: #fff3cd; padding: 1px 3px; border-radius: 2px;">$1</mark>');
 }
+// LOAD SEC UPDATES
+const newsFeed = document.getElementById('newsFeed');
+if (newsFeed && typeof secUpdates !== 'undefined') {
+  newsFeed.innerHTML = secUpdates.map(item => `
+    <div style="background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border-left: 4px solid #d32f2f;">
+      <span style="font-size: 0.8em; color: #666;">${item.date}</span>
+      <h4 style="margin: 5px 0;">${item.title}</h4>
+      <p style="color: #444; font-size: 0.9em;">${item.description}</p>
+      <a href="${item.link}" target="_blank" style="color: #1a73e8; font-size: 0.9em;">Read more →</a>
+    </div>
+  `).join('');
+}
