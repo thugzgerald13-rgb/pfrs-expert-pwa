@@ -1,1 +1,106 @@
-UPDATED_WITH_ENGINE_SCRIPT
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PFRS Expert PWA</title>
+  <meta name="theme-color" content="#1a4d8c" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <main class="page-container" style="max-width: 1100px; margin: 0 auto;">
+    <section class="card" style="background:#fff; border:1px solid #dee2e6; border-radius:8px; padding:1rem; margin-bottom:1rem;">
+      <h1 style="margin-bottom:0.5rem;">PFRS Expert PWA</h1>
+      <p style="margin-bottom:1rem; color:#6c757d;">
+        Upload a workbook, generate a draft FS/notes pack, and iterate with AI-assisted polishing.
+      </p>
+
+      <div style="display:grid; gap:0.75rem; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));">
+        <label>
+          Entity name
+          <input id="entityName" type="text" placeholder="ABC Corporation" style="width:100%; padding:0.5rem;" />
+        </label>
+        <label>
+          Fiscal year end
+          <input id="fiscalYearEnd" type="date" style="width:100%; padding:0.5rem;" />
+        </label>
+        <label>
+          Upload trial balance (.xlsx)
+          <input id="fileInput" type="file" accept=".xlsx" style="width:100%;" />
+        </label>
+      </div>
+    </section>
+
+    <section class="card" style="background:#fff; border:1px solid #dee2e6; border-radius:8px; padding:1rem; margin-bottom:1rem;">
+      <h2 style="margin-bottom:0.75rem;">Generate</h2>
+      <div style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center; margin-bottom:0.75rem;">
+        <select id="disclosureType" style="padding:0.5rem; min-width:240px;">
+          <option value="full_notes_pack">Full Notes Pack</option>
+          <option value="full_fs_pack">Full FS Pack</option>
+        </select>
+        <button id="generateDisclosureBtn" style="padding:0.5rem 1rem;">Generate</button>
+        <button id="aiImproveBtn" style="padding:0.5rem 1rem;">AI Improve Draft</button>
+      </div>
+      <pre id="generatedDisclosure" style="white-space:pre-wrap; background:#f8f9fa; border:1px solid #dee2e6; padding:0.75rem; min-height:180px;"></pre>
+    </section>
+
+    <section class="card" style="background:#fff; border:1px solid #dee2e6; border-radius:8px; padding:1rem; margin-bottom:1rem;">
+      <h2 style="margin-bottom:0.75rem;">Upload Review</h2>
+      <pre id="reviewResults" style="white-space:pre-wrap; background:#f8f9fa; border:1px solid #dee2e6; padding:0.75rem; min-height:120px;"></pre>
+    </section>
+
+    <section class="card" style="background:#fff; border:1px solid #dee2e6; border-radius:8px; padding:1rem;">
+      <h2 style="margin-bottom:0.75rem;">AI Chat</h2>
+      <div style="display:flex; gap:0.75rem; margin-bottom:0.75rem;">
+        <input id="aiInput" type="text" placeholder="Ask about missing notes, tax, PPE, framework..." style="flex:1; padding:0.5rem;" />
+        <button id="aiAskBtn" style="padding:0.5rem 1rem;">Ask</button>
+        <button id="aiSuggestBtn" style="padding:0.5rem 1rem;">Suggest Prompts</button>
+      </div>
+      <pre id="aiOutput" style="white-space:pre-wrap; background:#f8f9fa; border:1px solid #dee2e6; padding:0.75rem; min-height:100px;"></pre>
+      <h3 style="margin:0.75rem 0 0.5rem;">AI Suggested Prompts</h3>
+      <pre id="aiSuggestions" style="white-space:pre-wrap; background:#f8f9fa; border:1px solid #dee2e6; padding:0.75rem; min-height:90px;"></pre>
+    </section>
+  </main>
+
+  <script>
+    (function bootstrapEntityState() {
+      const key = 'pfrsExpertState';
+      const current = JSON.parse(localStorage.getItem(key) || '{}');
+      const nameInput = document.getElementById('entityName');
+      const fyInput = document.getElementById('fiscalYearEnd');
+
+      if (nameInput && current.entityName) nameInput.value = current.entityName;
+      if (fyInput && current.fiscalYearEnd) fyInput.value = current.fiscalYearEnd;
+
+      function persist() {
+        localStorage.setItem(
+          key,
+          JSON.stringify({
+            ...current,
+            entityName: nameInput?.value?.trim() || '',
+            fiscalYearEnd: fyInput?.value || ''
+          })
+        );
+      }
+
+      nameInput?.addEventListener('input', persist);
+      fyInput?.addEventListener('change', persist);
+      persist();
+    })();
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {
+          // Ignore registration failures in local/dev preview.
+        });
+      });
+    }
+  </script>
+
+  <script src="js/capo-notes-engine.js"></script>
+  <script src="js/capo-fs-engine.js"></script>
+  <script src="js/capo-ai-layer.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
