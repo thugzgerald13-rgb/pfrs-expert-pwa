@@ -1,1 +1,314 @@
-UPDATED_WITH_ENGINE_SCRIPT
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PFRS Expert System</title>
+  <meta name="theme-color" content="#1a4d8c" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .hero-grid, .two-col, .three-col { display:grid; gap:1rem; }
+    .hero-grid { grid-template-columns: 1.3fr 1fr; margin-bottom: 1.5rem; }
+    .two-col { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .three-col { grid-template-columns: repeat(3, minmax(0,1fr)); }
+    .stack { display:flex; flex-direction:column; gap:1rem; }
+    .helper-text { font-size: .8rem; color: var(--text-muted); margin-top: .35rem; }
+    .status-chip { display:inline-flex; align-items:center; gap:.4rem; padding:.35rem .65rem; border-radius:999px; background: rgba(39,174,96,.12); color:#1f7a45; font-size:.8rem; font-weight:600; }
+    .status-chip.warn { background: rgba(243,156,18,.12); color:#a66800; }
+    .status-chip.danger { background: rgba(231,76,60,.12); color:#b03a2e; }
+    .toolbar { display:flex; flex-wrap:wrap; gap:.75rem; align-items:center; }
+    .toolbar > * { flex: 0 0 auto; }
+    .toolbar .grow { flex: 1 1 240px; }
+    .mono-block {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+      min-height: 240px;
+      white-space: pre-wrap;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: .88rem;
+      overflow:auto;
+    }
+    .result-panel {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 1rem;
+      min-height: 180px;
+    }
+    .metric-list { display:grid; gap:.6rem; }
+    .metric-row { display:flex; justify-content:space-between; gap:1rem; border-bottom:1px dashed var(--border); padding-bottom:.4rem; }
+    .note-list { padding-left: 1.1rem; display:grid; gap:.5rem; }
+    textarea.long-input { min-height: 220px; resize: vertical; }
+    .footer-note { color: var(--text-muted); font-size: .8rem; }
+    @media (max-width: 900px) {
+      .hero-grid, .two-col, .three-col { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div id="offlineIndicator" class="offline-indicator hidden">You are offline. Cached pages remain available, but CDN-based Excel parsing may not work until you reconnect.</div>
+
+  <div id="app">
+    <aside class="sidebar open" id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <span>📘</span>
+          <span>PFRS <span class="highlight">Expert</span></span>
+        </div>
+        <button class="close-sidebar" id="closeSidebar" aria-label="Close">×</button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="#dashboard" class="nav-item active" data-page-link="dashboard"><span>🏠</span><span>Dashboard</span></a>
+        <a href="#generator" class="nav-item" data-page-link="generator"><span>🧾</span><span>Generate Notes</span></a>
+        <a href="#review" class="nav-item" data-page-link="review"><span>🔎</span><span>Review Notes</span></a>
+        <a href="#assistant" class="nav-item" data-page-link="assistant"><span>🤖</span><span>AI Assistant</span></a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="framework-badge">
+          <span>⚙️</span>
+          <span id="frameworkBadge">Framework: PFRS draft mode</span>
+        </div>
+        <button id="installBtn" class="install-btn" hidden>⬇️ Install App</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="header">
+        <div class="toolbar grow">
+          <button class="menu-toggle" id="menuToggle" aria-label="Menu">☰</button>
+          <div class="header-title">
+            <h1>PFRS Expert System</h1>
+            <p>Generate and review notes to financial statements from uploaded balances or draft text.</p>
+          </div>
+        </div>
+        <div class="header-actions">
+          <div class="entity-info"><span>🏢</span><span id="entitySummary">No entity loaded yet</span></div>
+          <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">🌓</button>
+        </div>
+      </header>
+
+      <div class="page-container">
+        <section class="page active" id="page-dashboard">
+          <div class="hero-grid">
+            <div class="card">
+              <div class="card-header">
+                <h3>Entity Setup</h3>
+                <span id="setupStatus" class="status-chip warn">Setup incomplete</span>
+              </div>
+              <div class="card-body">
+                <div class="two-col">
+                  <div class="form-group">
+                    <label for="entityName">Entity Name</label>
+                    <input id="entityName" type="text" placeholder="Example: CAPO Management & Advisory Services" />
+                  </div>
+                  <div class="form-group">
+                    <label for="fiscalYearEnd">Reporting Period / Year End</label>
+                    <input id="fiscalYearEnd" type="text" placeholder="December 31, 2025" />
+                  </div>
+                  <div class="form-group">
+                    <label for="frameworkSelect">Framework</label>
+                    <select id="frameworkSelect">
+                      <option value="PFRS">PFRS</option>
+                      <option value="PFRS for SMEs">PFRS for SMEs</option>
+                      <option value="Micro / Simplified">Micro / Simplified</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label for="industryContext">Industry / Context</label>
+                    <input id="industryContext" type="text" placeholder="Bookkeeping, services, trading, cooperative, PEZA, etc." />
+                  </div>
+                </div>
+                <div class="toolbar">
+                  <button id="saveEntityBtn" class="btn-primary">Save Entity</button>
+                  <button id="clearStateBtn" class="btn-secondary">Clear Saved State</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3>Workbook Upload</h3>
+                <span id="uploadStatus" class="status-chip warn">No workbook yet</span>
+              </div>
+              <div class="card-body">
+                <label class="upload-area" for="fileInput">
+                  <div>📊</div>
+                  <p><strong>Upload Excel trial balance / lead schedules</strong></p>
+                  <p class="helper-text">Accepted: .xlsx. The app will detect balances and draft FS/notes.</p>
+                </label>
+                <input id="fileInput" type="file" accept=".xlsx" />
+                <div class="helper-text" id="uploadedWorkbookName">No file selected.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="three-col">
+            <div class="stat-card">
+              <div class="stat-icon">💵</div>
+              <div class="stat-info">
+                <h3>Cash</h3>
+                <div class="stat-number" id="statCash">₱0.00</div>
+                <div class="stat-label">Detected from workbook</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">📈</div>
+              <div class="stat-info">
+                <h3>Revenue</h3>
+                <div class="stat-number" id="statRevenue">₱0.00</div>
+                <div class="stat-label">Detected from workbook</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">🧮</div>
+              <div class="stat-info">
+                <h3>Total Assets</h3>
+                <div class="stat-number" id="statAssets">₱0.00</div>
+                <div class="stat-label">Estimated total assets</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="two-col" style="margin-top:1.5rem;">
+            <div class="card">
+              <div class="card-header"><h3>Detected Balance Snapshot</h3></div>
+              <div class="card-body">
+                <div id="balanceSummary" class="result-panel">
+                  Upload a workbook to see the extracted financial balance summary here.
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><h3>Generated FS Preview</h3></div>
+              <div class="card-body">
+                <div id="reviewResults" class="mono-block">No financial statements generated yet.</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="page" id="page-generator">
+          <div class="card">
+            <div class="card-header">
+              <h3>Generate Notes / FS Pack</h3>
+            </div>
+            <div class="card-body stack">
+              <div class="toolbar">
+                <div class="grow form-group" style="margin-bottom:0;">
+                  <label for="disclosureType">Output Type</label>
+                  <select id="disclosureType">
+                    <option value="full_notes_pack">Full Notes to Financial Statements</option>
+                    <option value="full_fs_pack">Draft Financial Statements Pack</option>
+                    <option value="note_revenue">Revenue Note</option>
+                    <option value="note_ppe">Property and Equipment Note</option>
+                    <option value="note_income_tax">Income Tax Note</option>
+                    <option value="note_related_party">Related Party Note</option>
+                    <option value="note_going_concern">Going Concern Note</option>
+                    <option value="note_leases">Leases Note</option>
+                  </select>
+                </div>
+                <div class="grow form-group" style="margin-bottom:0;">
+                  <label for="extraContext">Extra Context</label>
+                  <input id="extraContext" type="text" placeholder="Optional: SEC, audit-ready, with comparative context, cooperative, PEZA, etc." />
+                </div>
+              </div>
+              <div class="toolbar">
+                <button id="generateDisclosureBtn" class="btn-primary">Generate</button>
+                <button id="aiImproveBtn" class="btn-secondary">Improve Draft</button>
+                <button id="copyGeneratedBtn" class="btn-secondary">Copy Output</button>
+              </div>
+              <div id="generatedDisclosure" class="mono-block">Generated output will appear here.</div>
+            </div>
+          </div>
+        </section>
+
+        <section class="page" id="page-review">
+          <div class="two-col">
+            <div class="card">
+              <div class="card-header">
+                <h3>Upload or Paste Notes</h3>
+              </div>
+              <div class="card-body stack">
+                <div>
+                  <label class="upload-area" for="notesFileInput">
+                    <div>📝</div>
+                    <p><strong>Upload draft notes file</strong></p>
+                    <p class="helper-text">Accepted: .txt, .md, .html. For .docx or .pdf, paste the text into the box below.</p>
+                  </label>
+                  <input id="notesFileInput" type="file" accept=".txt,.md,.html,.htm,text/plain,text/markdown,text/html" />
+                  <div class="helper-text" id="uploadedNotesName">No notes file selected.</div>
+                </div>
+
+                <div class="form-group" style="margin-bottom:0;">
+                  <label for="notesDraftInput">Draft Notes Text</label>
+                  <textarea id="notesDraftInput" class="long-input" placeholder="Paste your notes to financial statements here for review..."></textarea>
+                </div>
+
+                <div class="toolbar">
+                  <button id="reviewNotesBtn" class="btn-primary">Review Notes</button>
+                  <button id="clearNotesBtn" class="btn-secondary">Clear Draft</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h3>Review Findings</h3>
+                <span id="reviewStatus" class="status-chip warn">No review yet</span>
+              </div>
+              <div class="card-body">
+                <div id="reviewFindings" class="result-panel">Run a review to see missing disclosures, weak areas, and draft issues.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="two-col" style="margin-top:1.5rem;">
+            <div class="card">
+              <div class="card-header"><h3>Suggested Next Drafts</h3></div>
+              <div class="card-body">
+                <div id="suggestedPrompts" class="result-panel">The app will suggest follow-up prompts after a review.</div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><h3>AI Explanation</h3></div>
+              <div class="card-body">
+                <div id="aiExplanation" class="mono-block">Explanations for review findings will appear here.</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="page" id="page-assistant">
+          <div class="card">
+            <div class="card-header"><h3>Ask the PFRS Assistant</h3></div>
+            <div class="card-body stack">
+              <div class="form-group" style="margin-bottom:0;">
+                <label for="aiInput">Question</label>
+                <textarea id="aiInput" rows="5" placeholder="Example: What note is still missing? Explain the revenue disclosure. Draft a PPE note based on uploaded balances."></textarea>
+              </div>
+              <div class="toolbar">
+                <button id="aiAskBtn" class="btn-primary">Ask</button>
+                <button id="loadReviewPromptBtn" class="btn-secondary">Load Review Summary Prompt</button>
+              </div>
+              <div id="aiOutput" class="mono-block">AI reply will appear here.</div>
+              <p class="footer-note">This is a browser-side helper based on the uploaded workbook, generated notes, and the latest review findings.</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="js/capo-notes-engine.js"></script>
+  <script src="js/capo-fs-engine.js"></script>
+  <script src="js/capo-ai-layer.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
