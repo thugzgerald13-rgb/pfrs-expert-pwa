@@ -1,0 +1,24 @@
+(function(){
+  const KEY='capoPlatformV1';
+  function safe(v){ return Number(v||0); }
+  function abs(v){ return Math.abs(safe(v)); }
+  function php(v){ return new Intl.NumberFormat('en-PH',{style:'currency',currency:'PHP',maximumFractionDigits:2}).format(safe(v)); }
+  function load(){ try{return JSON.parse(localStorage.getItem(KEY)||'{}')}catch(e){return {}} }
+  function save(db){ localStorage.setItem(KEY,JSON.stringify(db)); return db; }
+  function init(){ const db=load(); db.tasks=db.tasks||[]; db.complianceRuns=db.complianceRuns||[]; db.settings=db.settings||{mode:'Offline-first MVP',ai:'Rule-based local assistant'}; return save(db); }
+  function addTask(title,type='General',status='Open'){ const db=init(); const task={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),title,type,status,createdAt:new Date().toISOString()}; db.tasks.unshift(task); save(db); return task; }
+  function listTasks(){ return init().tasks; }
+  function dashboard(entity={},balances={},review=null){ const health=[]; if(entity.entityName) health.push('Entity profile saved'); else health.push('Entity profile incomplete'); if(safe(balances.totalAssets)) health.push('Workbook parsed'); else health.push('No workbook parsed'); if(review) health.push(`Latest notes review score: ${review.score}/100`); else health.push('No notes review yet'); const riskScore=Math.max(0,100-(review?Math.max(0,90-review.score):25)-(safe(balances.totalAssets)?0:20)); return {riskScore,health,metrics:{assets:php(balances.totalAssets),revenue:php(balances.revenue),tax:php(abs(balances.incomeTaxExpense)),netIncome:php(balances.netIncomeAfterTax)}}; }
+  function complianceCheck(entity={},balances={},review=null){ const issues=[]; const actions=[]; if(!entity.entityName){issues.push('Missing entity name');actions.push('Complete entity setup before exporting client files.');}
+    if(!safe(balances.totalAssets)){issues.push('No current-year workbook detected');actions.push('Upload current-year trial balance.');}
+    if(!review){issues.push('Notes review not yet performed');actions.push('Run Notes Review before client release.');}
+    else if(review.score<85){issues.push('Notes review score below firm release threshold');actions.push('Resolve missing notes and placeholders until score reaches at least 85.');}
+    if(!/PFRS|SME|Micro/i.test(entity.frameworkName||'')){issues.push('Financial reporting framework unclear');actions.push('Select PFRS, PFRS for SMEs, or Micro/Simplified framework.');}
+    if(safe(balances.revenue)&&!safe(balances.incomeTaxExpense)){issues.push('Revenue detected but income tax expense is zero');actions.push('Validate tax provision, tax exemption, PEZA/RBE, MCIT/RCIT, or NOLCO position.');}
+    if(safe(balances.ppe)&&!safe(balances.accumulatedDepreciation)){issues.push('PPE detected but accumulated depreciation not detected');actions.push('Validate fixed asset register and depreciation schedule.');}
+    const score=Math.max(0,100-(issues.length*12)); const result={score,issues,actions,createdAt:new Date().toISOString()}; const db=init(); db.complianceRuns.unshift(result); save(db); return result; }
+  function renderDashboard(model){ return `<div class="metric-row"><span>Platform Risk Score</span><strong>${model.riskScore}/100</strong></div><div class="metric-row"><span>Total Assets</span><strong>${model.metrics.assets}</strong></div><div class="metric-row"><span>Revenue</span><strong>${model.metrics.revenue}</strong></div><div class="metric-row"><span>Net Income</span><strong>${model.metrics.netIncome}</strong></div><hr><strong>System Health</strong><ul>${model.health.map(x=>`<li>${x}</li>`).join('')}</ul>`; }
+  function renderCompliance(result){ return [`Score: ${result.score}/100`,'','Issues:',...(result.issues.length?result.issues.map(x=>`- ${x}`):['- No major issues detected']),'','Required Actions:',...(result.actions.length?result.actions.map(x=>`- ${x}`):['- Ready for senior review'])].join('\n'); }
+  function generateEngagementPlan(entity={},balances={},review=null){ const c=complianceCheck(entity,balances,review); return ['CAPO ENGAGEMENT PLAN',`Client: ${entity.entityName||'[Entity]'}`,`Period: ${entity.fiscalYearEnd||'[Period]'}`,'','Priority Actions:',...c.actions.map((a,i)=>`${i+1}. ${a}`),'','Suggested Workflow:','1. Complete entity profile and framework selection.','2. Upload current and comparative trial balances.','3. Generate CAPO Audit-Level Pack.','4. Run Notes Review and Compliance Check.','5. Export HTML/DOC/TXT for client and senior review.','6. Save output to SaaS workspace or Supabase cloud.'].join('\n'); }
+  window.CAPO_PLATFORM_ENGINE={init,addTask,listTasks,dashboard,complianceCheck,renderDashboard,renderCompliance,generateEngagementPlan};
+})();
