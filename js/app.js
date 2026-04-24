@@ -2,6 +2,37 @@ document.addEventListener('DOMContentLoaded', async () => {
   const state = { financialData:null, comparativeData:null, latestOutput:'' };
   const $ = (id)=>document.getElementById(id);
 
+  const sidebar = $('sidebar');
+  const overlay = document.createElement('div');
+  overlay.className = 'sidebar-overlay';
+  document.body.appendChild(overlay);
+
+  function openSidebar(){
+    sidebar.classList.add('open');
+    overlay.classList.add('active');
+    document.body.classList.add('sidebar-locked');
+  }
+
+  function closeSidebar(){
+    sidebar.classList.remove('open');
+    overlay.classList.remove('active');
+    document.body.classList.remove('sidebar-locked');
+  }
+
+  $('menuToggle')?.addEventListener('click', openSidebar);
+  $('closeSidebar')?.addEventListener('click', closeSidebar);
+  overlay.addEventListener('click', closeSidebar);
+
+  document.querySelectorAll('.nav-item').forEach(n=>{
+    n.addEventListener('click',()=>{
+      if(window.innerWidth < 900) closeSidebar();
+    });
+  });
+
+  window.addEventListener('resize',()=>{
+    if(window.innerWidth >= 900) closeSidebar();
+  });
+
   await loadScript('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js','XLSX');
 
   $('fileInput')?.addEventListener('change', async (e)=>{
