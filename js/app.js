@@ -1,91 +1,57 @@
 document.addEventListener('DOMContentLoaded', async () => {
+  const storageKey = 'pfrsExpertState';
+  const state = { entity: JSON.parse(localStorage.getItem(storageKey) || '{}'), financialData: null, review: null, aiContext: {} };
+  const el = (id) => document.getElementById(id);
 
-  const state = {
-    entity: JSON.parse(localStorage.getItem('pfrsExpertState') || '{}'),
-    financialData: null,
-    aiContext: {}
-  };
-
-  // LOAD XLSX
   await loadScript('https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js', 'XLSX');
 
-  // FILE UPLOAD (EXCEL → FS → NOTES)
-  document.getElementById('fileInput')?.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  bindEntity(); bindWorkbook(); bindGenerator(); bindReview(); bindAI(); refreshEntity();
 
-    if (file.name.endsWith('.xlsx')) {
-      const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data, { type: 'array' });
-
-      const parsed = CAPO_NOTES_ENGINE.parseWorkbook(workbook);
-      state.financialData = parsed;
-
-      const fs = CAPO_FS_ENGINE.generateFSPack(
-        state.entity,
-        parsed.balances
-      );
-
-      document.getElementById('reviewResults').textContent = fs;
-
-      state.aiContext = {
-        entityName: state.entity.entityName,
-        balances: parsed.balances
-      };
-    }
-  });
-
-  // GENERATOR
-  document.getElementById('generateDisclosureBtn')?.addEventListener('click', () => {
-    const type = document.getElementById('disclosureType').value;
-
-    let text = '';
-
-    if (type === 'full_notes_pack') {
-      text = CAPO_NOTES_ENGINE.generateFullNotesPack(
-        state.entity,
-        { name: 'PFRS' },
-        state.financialData?.balances || {},
-        ''
-      );
-    }
-
-    if (type === 'full_fs_pack') {
-      text = CAPO_FS_ENGINE.generateFSPack(
-        state.entity,
-        state.financialData?.balances || {}
-      );
-    }
-
-    document.getElementById('generatedDisclosure').textContent = text;
-  });
-
-  // AI IMPROVE
-  document.getElementById('aiImproveBtn')?.addEventListener('click', () => {
-    const draft = document.getElementById('generatedDisclosure').textContent;
-
-    const improved = CAPO_AI_LAYER.improveDraft(draft, state.entity);
-
-    document.getElementById('generatedDisclosure').textContent = improved;
-  });
-
-  // AI CHAT
-  document.getElementById('aiAskBtn')?.addEventListener('click', () => {
-    const input = document.getElementById('aiInput').value;
-
-    const reply = CAPO_AI_LAYER.chatReply(input, state.aiContext);
-
-    document.getElementById('aiOutput').textContent = reply;
-  });
-
-  function loadScript(src, global) {
-    return new Promise((resolve) => {
-      if (window[global]) return resolve();
-      const s = document.createElement('script');
-      s.src = src;
-      s.onload = resolve;
-      document.head.appendChild(s);
-    });
+  function bindEntity(){
+    el('saveEntityBtn').onclick=()=>{ state.entity={entityName:el('entityName').value,fiscalYearEnd:el('fiscalYearEnd').value,frameworkName:el('frameworkSelect').value}; localStorage.setItem(storageKey,JSON.stringify(state.entity)); refreshEntity(); };
   }
 
+  function bindWorkbook(){
+    el('fileInput').onchange=async(e)=>{
+      const f=e.target.files[0]; if(!f)return;
+      const data=await f.arrayBuffer();
+      const wb=XLSX.read(data,{type:'array'});
+      const parsed=CAPO_NOTES_ENGINE.parseWorkbook(wb);
+      state.financialData=parsed;
+      const pack=CAPO_AFS_ENGINE.generateFullAFSPack(state.entity,parsed.balances,'PFRS','');
+      el('reviewResults').textContent=pack;
+    };
+  }
+
+  function bindGenerator(){
+    el('generateDisclosureBtn').onclick=()=>{
+      const t=el('disclosureType').value;
+      const b=state.financialData?.balances||{};
+      let out='';
+      if(t==='full_afs_pack') out=CAPO_AFS_ENGINE.generateFullAFSPack(state.entity,b,'PFRS','');
+      else if(t==='full_notes_pack') out=CAPO_NOTES_ENGINE.generateFullNotesPack(state.entity,{name:'PFRS'},b,'');
+      else out=CAPO_FS_ENGINE.generateFSPack(state.entity,b);
+      el('generatedDisclosure').textContent=out;
+    };
+  }
+
+  function bindReview(){
+    el('reviewNotesBtn').onclick=()=>{
+      const txt=el('notesDraftInput').value;
+      const res=CAPO_NOTES_ENGINE.reviewNotesDraft(txt,{balances:state.financialData?.balances||{}});
+      el('reviewFindings').textContent=JSON.stringify(res,null,2);
+    };
+  }
+
+  function bindAI(){
+    el('aiAskBtn').onclick=()=>{
+      el('aiOutput').textContent=CAPO_AI_LAYER.chatReply(el('aiInput').value,state.aiContext);
+    };
+  }
+
+  function refreshEntity(){
+    el('entitySummary').textContent=state.entity.entityName||'No entity';
+  }
+
+  function loadScript(src,g){return new Promise(r=>{if(window[g])return r();const s=document.createElement('script');s.src=src;s.onload=r;document.head.appendChild(s);});}
 });
